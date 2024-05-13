@@ -387,21 +387,23 @@
         document.addEventListener('DOMContentLoaded', function () {
             const slides = Array.from(document.querySelectorAll('.slide'));
             let currentIndex = 0;
+            let activeAnimationInterval = null; // Track the active interval for clearing
 
+            // Function to animate text character by character
             function animateText(textElement) {
                 const text = textElement.getAttribute('data-text');
                 textElement.textContent = '';
                 let i = 0;
-                clearInterval(textElement.intervalId); // Ensure no overlapping intervals
-                textElement.intervalId = setInterval(() => {
+                let interval = setInterval(() => {
                     if (i < text.length) {
                         textElement.textContent += text[i++];
                     } else {
-                        clearInterval(textElement.intervalId);
+                        clearInterval(interval);
                     }
                 }, 50); // Adjust typing speed
             }
 
+            // Reset all slide states before updating visibility
             function resetSlideState(slide) {
                 const firstText = slide.querySelector('.animated');
                 const secondText = slide.querySelector('.animated-second');
@@ -409,19 +411,22 @@
 
                 // Reset styles to initial states
                 image.style.opacity = '1';
-                image.style.transform = 'scale(1)'; // Ensure image is scaled back
+                image.style.transform = 'scale(1)'; // Ensure image is scaled back if transformed
                 firstText.style.opacity = '1';
                 secondText.style.opacity = '0';
                 secondText.style.visibility = 'hidden';
             }
 
+            // Handle animations for the currently visible slide
             function handleSlideAnimations(slide) {
+                if (!slide.classList.contains('visible')) return;
+
                 const firstText = slide.querySelector('.animated');
                 const secondText = slide.querySelector('.animated-second');
                 const image = slide.querySelector('.an_pic');
 
-                // Hide image and first text then show and animate second text
                 setTimeout(() => {
+                    // Ensure this runs only if the slide is still visible
                     if (slide.classList.contains('visible')) {
                         image.style.opacity = '0';
                         firstText.style.opacity = '0';
@@ -429,20 +434,31 @@
                         secondText.style.opacity = '1';
                         animateText(secondText);
                     }
-                }, 3000); // 3 seconds delay before starting the animation of the second text
+                }, 2500); // Delay before starting second text animation
             }
 
             function updateSlideVisibility() {
                 slides.forEach((slide, index) => {
-                    resetSlideState(slide);
-                    slide.classList.remove('visible', 'hidden-right', 'hidden-left');
-                    slide.classList.toggle('visible', index === currentIndex);
-                    if (index === currentIndex) {
-                        handleSlideAnimations(slide); // Trigger animations when slide becomes visible
-                    } else {
-                        slide.classList.add(index < currentIndex ? 'hidden-left' : 'hidden-right');
-                    }
+                    // resetSlideState(slide); // Reset the state for all slides first
+                    slide.classList.remove('visible', 'hidden-right', 'hidden-left'); // Remove all visibility and position classes
+                    // Apply directional classes for slides that are not currently selected
+                    slide.classList.add(index < currentIndex ? 'hidden-left' : index > currentIndex ? 'hidden-right' : 'visible');
+                    handleSlideAnimations(slide);
+
                 });
+                 
+            }
+
+            function resetSlideState(slide) {
+                const firstText = slide.querySelector('.animated');
+                const secondText = slide.querySelector('.animated-second');
+                const image = slide.querySelector('.an_pic');
+
+                // Reset opacity and visibility to initial state
+                image.style.opacity = '1';
+                firstText.style.opacity = '1';
+                secondText.style.opacity = '0';
+                secondText.style.visibility = 'hidden';
             }
 
             function navigate(direction) {
@@ -452,27 +468,26 @@
                     updateSlideVisibility();
                 }
             }
-
-            // Bind play button to start audio and navigate to the next slide
+            // Play audio and move to next slide when the play button is clicked
             document.getElementById('mybutton').addEventListener('click', function () {
                 document.getElementById('myAudio').play();
-                this.style.display = 'none'; // Hide play button
-                navigate(1);
+                this.style.display = 'none'; // Hide play button after clicked
+                navigate(1); // Move to the next slide
             });
 
-            // Initialize visibility and animations for slides
+            // Set initial states and attributes for text elements
             slides.forEach(slide => {
                 const textElements = slide.querySelectorAll('.animated-second');
                 textElements.forEach(text => {
-                    text.setAttribute('data-text', text.textContent);
+                    text.setAttribute('data-text', text.textContent); // Store the actual text
                 });
             });
 
-            // Arrow navigation
             document.querySelector('.right-arrow').addEventListener('click', () => navigate(1));
             document.querySelector('.left-arrow').addEventListener('click', () => navigate(-1));
 
-            updateSlideVisibility(); // Set initial visibility for slides
+
+            updateSlideVisibility(); // Initial setup
         });
 
     </script>
